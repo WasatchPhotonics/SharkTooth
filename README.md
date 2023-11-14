@@ -31,8 +31,9 @@ invoked in interactive mode:
 6. Call this program to enter interactive mode:
    $ python -i sharktooth.py packets.json
 7. Use interactive help to learn the usage of this program:
+   ```
    >>> help()
    ...
    >>> help(select_spectrometer)
                  ...
-```
+   ```
