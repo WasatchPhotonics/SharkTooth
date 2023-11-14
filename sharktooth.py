@@ -25,7 +25,7 @@ Instructions: 1. Use Wireshark to capture from USBPcap2.
                  Also check Include Secondary Data Sources.
                  Set Packet Details to "All Expanded".
                  The packet range should be set to All Packets & Captured.
-              6. Call this program to enter interactive mode:
+              6. Call the program in interactive mode:
                  $ python -i sharktooth.py packets.json
               7. Use interactive help to learn the usage of this program:
                  >>> help()
