@@ -49,6 +49,12 @@ _spec_read_addr = None
 
 _help = help
 
+# opcode table
+
+_opcode_lookup = {
+  "ad": "Spectral Acquisition",
+}
+
 # helper functions
 
 def _json_nav_path(json_obj, path, errout=False):
@@ -221,9 +227,53 @@ def select_spectrometer(index=0):
 
     print("Successfully selected spectrometer.")
 
+def get_relevant_frame_numbers():
+    """
+    Returns frame numbers corresponding to relevant packets
+    """
+
+    if not _spec_cmd_addr or not _spec_read_addr:
+        raise Exception("Spectrometer has not yet been selected.")
+
+    selected_packets = []
+
+    line_count = 0
+    for i in range(len(_packet_data)):
+        if get_usb_addr(_packet_data[i]) in [_spec_cmd_addr, _spec_read_addr]:
+            selected_packets.append(i)
+
+    return selected_packets
+
+def get_relevant_packets():
+    """
+    Returns list of relevant packets for further Python processing.
+    """
+
+    if not _spec_cmd_addr or not _spec_read_addr:
+        raise Exception("Spectrometer has not yet been selected.")
+
+    selected_packets = []
+
+    line_count = 0
+    for i in range(len(_packet_data)):
+        if get_usb_addr(_packet_data[i]) in [_spec_cmd_addr, _spec_read_addr]:
+            selected_packets.append(_packet_data[i])
+
+    return selected_packets
+
 def decode_packet(packet):
 
-    packet_type = "unknown"
+    packet_data = _json_nav_path(packet, ["_source", "layers", "frame_raw", 0])
+
+    # set the display type to the ENG-001 hex code, for now
+    packet_opcode = packet_data[58:60]
+
+    if packet_opcode and packet_opcode in _opcode_lookup.keys():
+        packet_type = _opcode_lookup[packet_opcode]
+    elif packet_opcode:
+        packet_type = "0x"+packet_opcode
+    else:
+        packet_type = "unknown"
 
     packet_src = _json_nav_path(packet, ["_source", "layers", "usb", "usb.src"])
     packet_dst = _json_nav_path(packet, ["_source", "layers", "usb", "usb.dst"])
@@ -238,7 +288,7 @@ def decode_packet(packet):
     return "<%s [%s] %d bytes>" % (packet_type, packet_direction, 
             packet_size or "??")
 
-def print_relevant_packets(offset=0, count=20):
+def print_relevant_packets(offset=0, count=100):
     """
     Prints decoded packet information.
 
@@ -273,5 +323,9 @@ Type help() for more information.
         if _packet_data_path.endswith(".json"):
             with open(_packet_data_path, 'rt') as _packet_data_file:
                 _packet_data = json.load(_packet_data_file)
+
+    # autocmd, for now
+    print(">>> select_spectrometer()")
+    select_spectrometer()
 
     _total_symbols = sorted(dir() + ["exit"])
