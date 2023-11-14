@@ -6,7 +6,7 @@ Program Name: WP SharkTooth
 
  Description: SharkTooth is a utility program meant to be used with WireShark.
               It provides meaningful diagnostic information with regards to
-              Wasatch Photonic's ENG-001 USB Specificiation.
+              Wasatch Photonic's ENG-0001 USB Specificiation.
 
               This program is an extension of the python shell and should be
               invoked in interactive mode:
@@ -91,7 +91,7 @@ def help(*k):
 
 SharkTooth is a utility program meant to be used with WireShark.
 It provides meaningful diagnostic information with regards to
-Wasatch Photonic's ENG-001 USB Specificiation.
+Wasatch Photonic's ENG-0001 USB Specificiation.
 
 Type help("wireshark") to learn how to use Wireshark to record spectrometer
 activity and export it in a format compatible with this program.
@@ -264,11 +264,15 @@ def get_relevant_packets():
 def decode_packet(packet):
 
     packet_data = _json_nav_path(packet, ["_source", "layers", "frame_raw", 0])
+    packet_time = _json_nav_path(packet, ["_source", "layers", "frame", "frame.time_relative"])
+    packet_size = _json_nav_path(packet, ["_source", "layers", "frame_raw", 2])
 
-    # set the display type to the ENG-001 hex code, for now
+    # Not sure if opcode is always located at this offset
     packet_opcode = packet_data[58:60]
 
-    if packet_opcode and packet_opcode in _opcode_lookup.keys():
+    if packet_size >= 2075:
+        packet_type = "BULK READ"
+    elif packet_opcode and packet_opcode in _opcode_lookup.keys():
         packet_type = _opcode_lookup[packet_opcode]
     elif packet_opcode:
         packet_type = "0x"+packet_opcode
@@ -283,16 +287,16 @@ def decode_packet(packet):
     else:
         packet_direction = "fromSpec"
 
-    packet_size = _json_nav_path(packet, ["_source", "layers", "frame_raw", 2])
-
-    return "<%s [%s] %d bytes>" % (packet_type, packet_direction, 
+    return "%s <%s [%s] %d bytes>" % (packet_time, packet_type, packet_direction, 
             packet_size or "??")
 
-def print_relevant_packets(offset=0, count=100):
+def print_relevant_packets(offset=0, count=0):
     """
     Prints decoded packet information.
 
     The parameters offset and count can be used to page through the data.
+
+    Use count=0 to get all packets.
     """
 
     if not _spec_cmd_addr or not _spec_read_addr:
@@ -307,7 +311,7 @@ def print_relevant_packets(offset=0, count=100):
 
             line_count += 1
 
-            if line_count >= offset+count:
+            if line_count >= offset+count and count != 0:
                 return
 
 if __name__=="__main__":
@@ -327,5 +331,7 @@ Type help() for more information.
     # autocmd, for now
     print(">>> select_spectrometer()")
     select_spectrometer()
+    print(">>> print_relevant_packets()")
+    print_relevant_packets()
 
     _total_symbols = sorted(dir() + ["exit"])

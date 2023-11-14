@@ -7,7 +7,7 @@ Author: Samie Bee, Date: 2023.11.14
 
 SharkTooth is a utility program meant to be used with WireShark.
 It provides meaningful diagnostic information with regards to
-Wasatch Photonic's ENG-001 USB Specificiation.
+Wasatch Photonic's ENG-0001 USB Specificiation.
 
 This program is an extension of the python shell and should be
 invoked in interactive mode:
