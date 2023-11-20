@@ -13,7 +13,9 @@ Program Name: WP SharkTooth
 
                   python -i sharktooth.py input_file.json
 
-Instructions: 1. Use Wireshark to capture from USBPcap2.
+Instructions: 1. Use Wireshark to capture from USBPcap2. 
+                 (One time I had to use USBPcap1 for it to work.
+                 Make sure it is filling up with messages.)
               2. Use any driver to interact with the spectrometer.
                  Options include Enlighten, Wasatch.PY, Wasatch.NET.
                  It does not have to be a driver written by us.
@@ -171,6 +173,9 @@ _opcode_lookup = {
 # helper functions
 
 def _json_nav_path(json_obj, path, errout=False):
+    """
+    Iterate through path to collect a specific json element. Return None if path does not resolve.
+    """
 
     for p in path:
         if type(json_obj) == list and type(p) == int and 0 <= p < len(json_obj):
@@ -185,6 +190,22 @@ def _json_nav_path(json_obj, path, errout=False):
             return None
 
     return json_obj
+
+def _json_search_key(packet, key):
+    """
+    searches json object for a specific key, possibly nested.
+    return a complete path that can be used with _json_nav_path
+    """
+
+    if key in packet.keys():
+        return [key]
+
+    for (k,v) in packet.items():
+        if type(v) == dict:
+            res = _json_search_key(v, key)
+            if res:
+                return [k] + res
+    return None
 
 # maintain a list of symbols to NOT show under help("commands")
 _private_symbols = dir()
@@ -326,6 +347,7 @@ def select_spectrometer(index=0):
         collected_read_addrs.add(get_usb_addr(packet))
 
     if len(collected_acq_addrs) != 1 or len(collected_read_addrs) != 1:
+        print(len(collected_acq_addrs), len(collected_read_addrs))
         raise Exception("Was not able to identify a single operating "
                 "spectrometer.")
         # this exception occurs when the program does not able to find anything
@@ -374,11 +396,25 @@ def get_relevant_packets():
 
     return selected_packets
 
-def decode_packet(packet):
+def decode_packet(packet, partial_decode=True):
 
     packet_data = _json_nav_path(packet, ["_source", "layers", "frame_raw", 0])
     packet_time = _json_nav_path(packet, ["_source", "layers", "frame", "frame.time_relative"])
     packet_size = _json_nav_path(packet, ["_source", "layers", "frame_raw", 2])
+
+    packet_opcode = _json_nav_path(packet, ["_source", "layers", "Setup Data", "usb.setup.bRequest_raw", 0])
+    packet_value = _json_nav_path(packet, ["_source", "layers", "Setup Data", "usb.setup.wValue"])
+    if packet_value == "0":
+        packet_value = "0000"
+    elif packet_value:
+        # remove '0x' prefix
+        packet_value = packet_value[2:]
+    packet_index = _json_nav_path(packet, ["_source", "layers", "Setup Data", "usb.setup.wIndex"])
+    if packet_index == "0":
+        packet_index = "0000"
+    elif packet_index:
+        # remote '0x' prefix
+        packet_index = packet_index[2:]
 
     packet_src = _json_nav_path(packet, ["_source", "layers", "usb", "usb.src"])
     packet_dst = _json_nav_path(packet, ["_source", "layers", "usb", "usb.dst"])
@@ -391,8 +427,8 @@ def decode_packet(packet):
     # data direction found on byte 28 of frame
     packet_direction_byte = packet_data[28*2:29*2]
 
-    # opcode found on byte 29 of frame
-    packet_opcode = packet_data[29*2:30*2]
+    # opcode also found on byte 29 of frame
+    #packet_opcode = packet_data[29*2:30*2]
 
     if packet_src == "host":
         packet_direction = "HOST_TO_DEVICE"
@@ -409,20 +445,35 @@ def decode_packet(packet):
     if packet_size >= 2075:
         packet_type = "BULK READ"
     elif packet_opcode and packet_opcode in _opcode_lookup.keys():
-        packet_type = _opcode_lookup[packet_opcode]
+        packet_type = _opcode_lookup[packet_opcode] + " 0x"+packet_opcode
     elif packet_opcode:
+        if not partial_decode:
+            return None
         packet_type = "unknown 0x"+packet_opcode
     else:
+        if not partial_decode:
+            return None
         packet_type = "unknown"
+    
+    value = packet_value or ""
+    if value == "0000": value = ""
+    if value:
+        value = "value_raw="+value
 
-    if packet_type.startswith("GET_") or packet_type.startswith("SET_"):
-        return "%s <%s [%s] %d bytes> : %s" % (packet_time, packet_type, packet_direction, 
-                packet_size or "??", packet_data)
-    else:
-        return "%s <%s [%s] %d bytes> : %s" % (packet_time, packet_type, packet_direction, 
-                packet_size or "??", packet_data)
+    index = packet_index or ""
+    if index == "0000": index = ""
+    if index:
+        index = "index_raw="+index
 
-def print_relevant_packets(offset=0, count=0):
+    val_24bit = None
+    if packet_value and packet_index:
+        val_24bit = int(packet_value, 16)|(int(packet_index, 16)<<16)
+        if val_24bit != None:
+            val_24bit = "value="+str(val_24bit)
+    
+    return "%s <%s [%s] %d bytes> %s %s %s" % (packet_time, packet_type, packet_direction, packet_size or "??", value, index, val_24bit)
+
+def print_relevant_packets(offset=0, count=0, skip_unknown=True):
     """
     Prints decoded packet information.
 
@@ -439,7 +490,9 @@ def print_relevant_packets(offset=0, count=0):
         if get_usb_addr(_packet_data[i]) in [_spec_cmd_addr, _spec_read_addr]:
 
             if line_count >= offset:
-                print(i, decode_packet(_packet_data[i]))
+                decoded = decode_packet(_packet_data[i], not skip_unknown)
+                if decoded:
+                    print(i, decoded)
 
             line_count += 1
 
