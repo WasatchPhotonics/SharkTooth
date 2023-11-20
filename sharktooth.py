@@ -51,23 +51,27 @@ _help = help
 
 # opcode table
 
+# This table of opcodes should be as comprehensive as possible,
+# including elements which have been deprecated.
+# Here we include anything that we may want to identify in the field.
 _opcode_lookup = {
   "39": "GET_ACCESSORY_ENABLE",
   "38": "SET_ACCESSORY_ENABLE",
   "ad": "ACQUIRE_SPECTRUM",
   "e4": "ACTUAL_FRAMES*",
   "df": "ACTUAL_INTEGRATION_TIME*",
-  "35": "AMBIENT_TEMPERATURE ",
-  "eb": "AREA_SCAN_ENABLE ",
-  "13": "BATTERY_STATE ",
-  "14": "BATTERY_REG ",
-  "04": "COMPILATION_OPTIONS ",
+  "35": "AMBIENT_TEMPERATURE",
+  "eb": "AREA_SCAN_ENABLE",
+  "86": "BATTERY_CHARGER_ENABLE",
+  "13": "BATTERY_STATE",
+  "14": "BATTERY_REG",
+  "04": "COMPILATION_OPTIONS",
   "cc": "GET_CONTINUOUS_ACQUISITION*",
   "c8": "SET_CONTINUOUS_ACQUISITION*",
   "cd": "GET_CONTINUOUS_FRAMES*",
   "c9": "SET_CONTINUOUS_FRAMES*",
   "c5": "GET_DETECTOR_GAIN",
-  "b7": "SET_DETECTOR_GAIN ",
+  "b7": "SET_DETECTOR_GAIN",
   "9f": "GET_DETECTOR_GAIN_ODD*",
   "9d": "SET_DETECTOR_GAIN_ODD*",
   "c4": "GET_DETECTOR_OFFSET",
@@ -106,7 +110,12 @@ _opcode_lookup = {
   "be": "SET_LASER_ENABLE",
   "ef": "LASER_INTERLOCK",
   "0d": "LASER_IS_FIRING",
-  "ea": "GET_LASER_RAMPING_MODE*",
+  "83": "GET_LASER_POWER_ATTENUATOR",
+  "82": "SET_LASER_POWER_ATTENUATOR",
+  "84": "LASER_TEC_ENABLE",
+  "e8": "GET_LASER_TEC_SETPOINT",
+  "e7": "SET_LASER_TEC_SETPOINT",
+  "ea": "GET_LASER_RAMPING_MODE*", # removed from FID ICD 1.16
   "e9": "SET_LASER_RAMPING_MODE*",
   "e8": "GET_LASER_TEC_SETPOINT",
   "e7": "SET_LASER_TEC_SETPOINT",
