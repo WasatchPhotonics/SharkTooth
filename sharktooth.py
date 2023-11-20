@@ -371,8 +371,31 @@ def decode_packet(packet):
     packet_time = _json_nav_path(packet, ["_source", "layers", "frame", "frame.time_relative"])
     packet_size = _json_nav_path(packet, ["_source", "layers", "frame_raw", 2])
 
-    # Not sure if opcode is always located at this offset
-    packet_opcode = packet_data[58:60]
+    packet_src = _json_nav_path(packet, ["_source", "layers", "usb", "usb.src"])
+    packet_dst = _json_nav_path(packet, ["_source", "layers", "usb", "usb.dst"])
+
+    # packet direction is determined two ways
+    # (1) by checking whether the src or dst is "host"
+    # (2) by checking the byte before the opcode
+    # these two results can be compared
+
+    # data direction found on byte 28 of frame
+    packet_direction_byte = packet_data[28*2:29*2]
+
+    # opcode found on byte 29 of frame
+    packet_opcode = packet_data[29*2:30*2]
+
+    if packet_src == "host":
+        packet_direction = "HOST_TO_DEVICE"
+        if packet_direction_byte != "40":
+            # if we don't have a direction indication on the previous byte, we probably don't have an opcode
+            packet_opcode = None
+    else:
+        packet_direction = "DEVICE_TO_HOST"
+
+        if packet_direction_byte != "c0":
+            # if we don't have a direction indication on the previous byte, we probably don't have an opcode
+            packet_opcode = None
 
     if packet_size >= 2075:
         packet_type = "BULK READ"
@@ -383,16 +406,12 @@ def decode_packet(packet):
     else:
         packet_type = "unknown"
 
-    packet_src = _json_nav_path(packet, ["_source", "layers", "usb", "usb.src"])
-    packet_dst = _json_nav_path(packet, ["_source", "layers", "usb", "usb.dst"])
-
-    if packet_src == "host":
-        packet_direction = "  toSpec"
+    if packet_type.startswith("GET_") or packet_type.startswith("SET_"):
+        return "%s <%s [%s] %d bytes> : %s" % (packet_time, packet_type, packet_direction, 
+                packet_size or "??", packet_data)
     else:
-        packet_direction = "fromSpec"
-
-    return "%s <%s [%s] %d bytes>" % (packet_time, packet_type, packet_direction, 
-            packet_size or "??")
+        return "%s <%s [%s] %d bytes> : %s" % (packet_time, packet_type, packet_direction, 
+                packet_size or "??", packet_data)
 
 def print_relevant_packets(offset=0, count=0):
     """
