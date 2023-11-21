@@ -346,7 +346,7 @@ def select_spectrometer(index=0):
     for packet in collected_read_packets:
         collected_read_addrs.add(get_usb_addr(packet))
 
-    if len(collected_acq_addrs) != 1 or len(collected_read_addrs) != 1:
+    if len(collected_acq_addrs) != 1 or len(collected_read_addrs) >= 1:
         print(len(collected_acq_addrs), len(collected_read_addrs))
         raise Exception("Was not able to identify a single operating "
                 "spectrometer.")
@@ -358,7 +358,8 @@ def select_spectrometer(index=0):
 
     global _spec_cmd_addr, _spec_read_addr 
     _spec_cmd_addr = list(collected_acq_addrs)[0]
-    _spec_read_addr = list(collected_read_addrs)[0]
+    if len(collected_read_addrs):
+        _spec_read_addr = list(collected_read_addrs)[0]
 
     print("Successfully selected spectrometer.")
 
@@ -367,7 +368,7 @@ def get_relevant_frame_numbers():
     Returns frame numbers corresponding to relevant packets
     """
 
-    if not _spec_cmd_addr or not _spec_read_addr:
+    if not _spec_cmd_addr and not _spec_read_addr:
         raise Exception("Spectrometer has not yet been selected.")
 
     selected_packets = []
@@ -384,7 +385,7 @@ def get_relevant_packets():
     Returns list of relevant packets for further Python processing.
     """
 
-    if not _spec_cmd_addr or not _spec_read_addr:
+    if not _spec_cmd_addr and not _spec_read_addr:
         raise Exception("Spectrometer has not yet been selected.")
 
     selected_packets = []
@@ -482,7 +483,7 @@ def print_relevant_packets(offset=0, count=0, skip_unknown=True):
     Use count=0 to get all packets.
     """
 
-    if not _spec_cmd_addr or not _spec_read_addr:
+    if not _spec_cmd_addr and not _spec_read_addr:
         raise Exception("Spectrometer has not yet been selected.")
 
     line_count = 0
