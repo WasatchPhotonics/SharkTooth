@@ -305,12 +305,10 @@ def get_usb_addr(packet):
     else:
         return src
 
-def select_spectrometer(index=0):
+def select_spectrometer():
     """
     Scan packet data for Wasatch Photonics spectrometers.
     The scanned spectrometer will be used by subsequently issued commands.
-
-    If there is more than one, the selection can be specified via index.
 
     Note that spectrometers come with pairs of USB addresses.
     """
@@ -371,14 +369,14 @@ def get_relevant_frame_numbers():
     if not _spec_cmd_addr and not _spec_read_addr:
         raise Exception("Spectrometer has not yet been selected.")
 
-    selected_packets = []
+    selected_frame_numbers = []
 
     line_count = 0
     for i in range(len(_packet_data)):
         if get_usb_addr(_packet_data[i]) in [_spec_cmd_addr, _spec_read_addr]:
-            selected_packets.append(i)
+            selected_frame_numbers.append(i)
 
-    return selected_packets
+    return selected_frame_numbers
 
 def get_relevant_packets():
     """
@@ -513,6 +511,9 @@ Type help() for more information.
         if _packet_data_path.endswith(".json"):
             with open(_packet_data_path, 'rt') as _packet_data_file:
                 _packet_data = json.load(_packet_data_file)
+        else:
+           print("Only JSON files supported.")
+           exit(2)
 
     # autocmd, for now
     print(">>> select_spectrometer()")
