@@ -510,6 +510,9 @@ Type help() for more information.
         if _packet_data_path.endswith(".json"):
             with open(_packet_data_path, 'rt') as _packet_data_file:
                 _packet_data = json.load(_packet_data_file)
+        else:
+           print("Only JSON files supported.")
+           exit(2)
 
     # autocmd, for now
     print(">>> select_spectrometer()")
