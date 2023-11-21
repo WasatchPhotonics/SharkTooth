@@ -368,14 +368,14 @@ def get_relevant_frame_numbers():
     if not _spec_cmd_addr or not _spec_read_addr:
         raise Exception("Spectrometer has not yet been selected.")
 
-    selected_packets = []
+    selected_frame_numbers = []
 
     line_count = 0
     for i in range(len(_packet_data)):
         if get_usb_addr(_packet_data[i]) in [_spec_cmd_addr, _spec_read_addr]:
-            selected_packets.append(i)
+            selected_frame_numbers.append(i)
 
-    return selected_packets
+    return selected_frame_numbers
 
 def get_relevant_packets():
     """
