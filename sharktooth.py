@@ -305,12 +305,10 @@ def get_usb_addr(packet):
     else:
         return src
 
-def select_spectrometer(index=0):
+def select_spectrometer():
     """
     Scan packet data for Wasatch Photonics spectrometers.
     The scanned spectrometer will be used by subsequently issued commands.
-
-    If there is more than one, the selection can be specified via index.
 
     Note that spectrometers come with pairs of USB addresses.
     """
